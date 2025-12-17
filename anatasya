@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Petualangan Hutan: Misi Harta Karun – Multiplayer</title>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
+  <style>
+    body { margin: 0; background: #1b5e20; font-family: Arial; }
+    #game-container { margin: auto; display: block; }
+    #ui {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: rgba(255,255,255,0.85);
+      padding: 10px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+<div id="game-container"></div>
+<div id="ui">
+  <b>Pilih Kostum</b><br>
+  <button onclick="setCostume('girl1')">Hijau</button>
+  <button onclick="setCostume('girl2')">Merah</button>
+  <button onclick="setCostume('girl3')">Biru</button>
+</div>
+
+<script>
+// ================= KONFIGURASI =================
+const config = {
+  type: Phaser.AUTO,
+  width: 800,
+  height: 500,
+  parent: 'game-container',
+  physics: { default: 'arcade' },
+  backgroundColor: '#81c784',
+  scene: { preload, create, update }
+};
+
+const game = new Phaser.Game(config);
+
+let player;
+let cursors;
+let score = 0;
+let scoreText;
+let questionText;
+let currentQuestion = 0;
+let costumeKey = 'girl1';
+
+const questions = [
+  { q: '3 apel - 1 apel = ?', a: '2' },
+  { q: '4 + 6 = ?', a: '10' },
+  { q: '8 - 5 = ?', a: '3' }
+];
+
+function preload () {
+  this.load.image('girl1', 'https://i.imgur.com/4AiXzf8.png');
+  this.load.image('girl2', 'https://i.imgur.com/KL1KQwH.png');
+  this.load.image('girl3', 'https://i.imgur.com/QZ7mZ8G.png');
+  this.load.image('chest', 'https://i.imgur.com/9yG3G5m.png');
+
+  // Sound
+  this.load.audio('bgm', 'https://cdn.pixabay.com/audio/2022/03/15/audio_7c9b1c3b9c.mp3');
+  this.load.audio('correct', 'https://cdn.pixabay.com/audio/2022/03/15/audio_9f7b0b8d30.mp3');
+}
+
+function create () {
+  this.sound.add('bgm', { loop: true, volume: 0.4 }).play();
+
+  player = this.physics.add.image(100, 250, costumeKey).setScale(0.2);
+  player.setCollideWorldBounds(true);
+
+  chest = this.physics.add.image(650, 250, 'chest').setScale(0.3);
+
+  scoreText = this.add.text(20, 20, 'Skor: 0', { fontSize: '20px', fill: '#000' });
+  questionText = this.add.text(200, 20, '', { fontSize: '18px', fill: '#000' });
+
+  showQuestion();
+
+  cursors = this.input.keyboard.createCursorKeys();
+  this.physics.add.overlap(player, chest, answerQuestion, null, this);
+}
+
+function update () {
+  player.setVelocity(0);
+  if (cursors.left.isDown) player.setVelocityX(-200);
+  else if (cursors.right.isDown) player.setVelocityX(200);
+  if (cursors.up.isDown) player.setVelocityY(-200);
+  else if (cursors.down.isDown) player.setVelocityY(200);
+}
+
+function showQuestion() {
+  if (currentQuestion < questions.length) {
+    questionText.setText('Tantangan: ' + questions[currentQuestion].q);
+  } else {
+    questionText.setText('🏆 Selesai! Skor Akhir: ' + score);
+    saveScore();
+  }
+}
+
+function answerQuestion () {
+  if (currentQuestion >= questions.length) return;
+
+  const userAnswer = prompt(questions[currentQuestion].q);
+  if (userAnswer === questions[currentQuestion].a) {
+    score += 10;
+    game.scene.scenes[0].sound.play('correct');
+    alert('Benar! +10 poin');
+  } else {
+    alert('Salah 😢');
+  }
+
+  scoreText.setText('Skor: ' + score);
+  currentQuestion++;
+  showQuestion();
+  chest.x = Phaser.Math.Between(100, 700);
+  chest.y = Phaser.Math.Between(100, 400);
+}
+
+// ================= LEADERBOARD (LOCAL) =================
+function saveScore() {
+  let name = prompt('Masukkan nama pemain');
+  let data = JSON.parse(localStorage.getItem('leaderboard')) || [];
+  data.push({ name, score });
+  data.sort((a,b)=>b.score-a.score);
+  localStorage.setItem('leaderboard', JSON.stringify(data.slice(0,5)));
+  showLeaderboard();
+}
+
+function showLeaderboard() {
+  let data = JSON.parse(localStorage.getItem('leaderboard')) || [];
+  let text = '🏆 Leaderboard:\n';
+  data.forEach((d,i)=> text += `${i+1}. ${d.name} - ${d.score}\n`);
+  alert(text);
+}
+
+// ================= KOSTUM =================
+function setCostume(key) {
+  costumeKey = key;
+  if (player) player.setTexture(key);
+}
+</script>
+</body>
+</html>
